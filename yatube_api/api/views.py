@@ -38,65 +38,24 @@ class GroupViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = GroupSerializer
 
 
-class APIComments(APIView):
-    def get(self, request, post_pk):
-        post = Post.objects.get(pk=post_pk)
-        comments = Comment.objects.filter(post=post)
-        serializer = CommentSerializer(comments, many=True)
-        return Response(serializer.data)
+class CommentsViewSet(viewsets.ModelViewSet):
+    serializer_class = CommentSerializer
 
-    def post(self, request, post_pk):
-        post = get_object_or_404(Post, pk=post_pk)
-        serializer = CommentSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save(post=post, author=request.user)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    def get_queryset(self):
+        post_id = self.kwargs['post_id']
+        return Comment.objects.filter(post_id=post_id)
 
+    def perform_create(self, serializer):
+        post_id = self.kwargs['post_id']
+        serializer.save(post_id=post_id, author=self.request.user)
 
-class APICommentsDetail(APIView):
-    def get(self, request, post_pk, comment_pk):
-        post = get_object_or_404(Post, pk=post_pk)
-        comment = get_object_or_404(Comment, pk=comment_pk, post=post)
-        serializer = CommentSerializer(comment)
-        return Response(serializer.data)
+    def perform_update(self, serializer):
+        if serializer.instance.author != self.request.user:
+            raise PermissionDenied(
+                "Редактировать можно только свой комментарий.")
+        serializer.save()
 
-    def put(self, request, post_pk, comment_pk):
-        post = get_object_or_404(Post, pk=post_pk)
-        comment = get_object_or_404(Comment, pk=comment_pk, post=post)
-        if request.user != comment.author:
-            return Response(
-                {"detail": "Редактировать комментарий может только автор."},
-                status=status.HTTP_403_FORBIDDEN
-            )
-        serializer = CommentSerializer(instance=comment, data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def patch(self, request, post_pk, comment_pk):
-        post = get_object_or_404(Post, pk=post_pk)
-        comment = get_object_or_404(Comment, pk=comment_pk, post=post)
-        if request.user != comment.author:
-            return Response(
-                {"detail": "Редактировать комментарий может только автор."},
-                status=status.HTTP_403_FORBIDDEN
-            )
-        serializer = CommentSerializer(instance=comment, data=request.data,
-                                       partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def delete(self, request, post_pk, comment_pk):
-        post = get_object_or_404(Post, pk=post_pk)
-        comment = get_object_or_404(Comment, pk=comment_pk, post=post)
-        if request.user != comment.author:
-            return Response(
-                {"detail": "Удалять комментарий может только автор."},
-                status=status.HTTP_403_FORBIDDEN
-            )
-        comment.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+    def perform_destroy(self, instance):
+        if instance.author != self.request.user:
+            raise PermissionDenied("Удалять можно только свой комментарий.")
+        instance.delete()
