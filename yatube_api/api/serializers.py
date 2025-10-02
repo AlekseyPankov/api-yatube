@@ -10,7 +10,8 @@ class GroupSerializer(serializers.ModelSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
-    posts = serializers.StringRelatedField(many=True, read_only=True)
+    posts = serializers.SlugRelatedField(
+        many=True, read_only=True, slug_field='text')
 
     class Meta:
         model = User
@@ -24,8 +25,10 @@ class PostSerializer(serializers.ModelSerializer):
         required=False,
         allow_null=True
     )
-    author = serializers.StringRelatedField(
-        read_only=True, default=serializers.CurrentUserDefault())
+    author = serializers.SlugRelatedField(
+        read_only=True,
+        default=serializers.CurrentUserDefault(),
+        slug_field='username')
 
     class Meta:
         model = Post
@@ -33,7 +36,9 @@ class PostSerializer(serializers.ModelSerializer):
 
 
 class CommentSerializer(serializers.ModelSerializer):
-    author = serializers.StringRelatedField(read_only=True)
+    author = serializers.SlugRelatedField(
+        read_only=True,
+        slug_field='username')
 
     class Meta:
         model = Comment

@@ -16,12 +16,12 @@ class PostViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         obj = self.get_object()
         if obj.author != self.request.user:
-            raise PermissionDenied("Редактировать можно только свой пост.")
+            raise PermissionDenied('Редактировать можно только свой пост.')
         serializer.save()
 
     def perform_destroy(self, instance):
         if instance.author != self.request.user:
-            raise PermissionDenied("Удалять можно только свой пост.")
+            raise PermissionDenied('Удалять можно только свой пост.')
         instance.delete()
 
 
@@ -38,21 +38,25 @@ class GroupViewSet(viewsets.ReadOnlyModelViewSet):
 class CommentsViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
 
-    def get_queryset(self):
+    def get_post(self):
         post_id = self.kwargs['post_id']
-        return Comment.objects.filter(post_id=post_id)
+        return Post.objects.get(id=post_id)
+
+    def get_queryset(self):
+        post = self.get_post()
+        return post.comments.all()
 
     def perform_create(self, serializer):
-        post_id = self.kwargs['post_id']
-        serializer.save(post_id=post_id, author=self.request.user)
+        post = self.get_post()
+        serializer.save(post=post, author=self.request.user)
 
     def perform_update(self, serializer):
         if serializer.instance.author != self.request.user:
             raise PermissionDenied(
-                "Редактировать можно только свой комментарий.")
+                'Редактировать можно только свой комментарий.')
         serializer.save()
 
     def perform_destroy(self, instance):
         if instance.author != self.request.user:
-            raise PermissionDenied("Удалять можно только свой комментарий.")
+            raise PermissionDenied('Удалять можно только свой комментарий.')
         instance.delete()
