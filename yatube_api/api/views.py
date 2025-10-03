@@ -1,3 +1,4 @@
+from django.shortcuts import get_object_or_404
 from rest_framework import viewsets
 from rest_framework.exceptions import PermissionDenied
 
@@ -40,7 +41,7 @@ class CommentsViewSet(viewsets.ModelViewSet):
 
     def get_post(self):
         post_id = self.kwargs['post_id']
-        return Post.objects.get(id=post_id)
+        return get_object_or_404(Post, id=post_id)
 
     def get_queryset(self):
         post = self.get_post()
